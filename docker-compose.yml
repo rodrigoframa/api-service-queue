@@ -1,0 +1,49 @@
+version: '3'
+volumes:
+  dados:
+networks:
+  web:
+  fila:
+services:
+  frontend:
+    image: nginx:1.13 
+    volumes:
+      # Site
+      - ./web:/usr/share/nginx/html/
+      # Configuracao do proxy reverso
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - 80:80
+    networks: 
+      - web
+    depends_on: 
+      - app
+  app:
+    image: python:3.6-alpine
+    volumes:
+      # Aplicacao 
+      - ./app:/app
+    working_dir: /app
+    command: bash ./app.sh
+    networks: 
+      - web
+      - fila
+    depends_on:
+      - queue
+    environment: 
+      - DB_NAME=abc_sender
+  queue:
+    image: redis:3.2
+    networks: 
+      - fila
+  escala:
+    build: escala
+    volumes:
+     # Escala
+      - ./escala:/escala
+    working_dir: /escala
+    command: escala.py
+    networks: 
+      - fila
+    depends_on: 
+      - queue
